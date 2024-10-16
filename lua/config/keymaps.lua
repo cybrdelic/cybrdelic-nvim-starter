@@ -11,6 +11,27 @@ vim.keymap.set(
   { noremap = true, silent = true, desc = "Resume" }
 )
 
+-- Function to run commitaura in a floating terminal
+vim.keymap.set("n", "<leader>gA", function()
+  local Terminal = require("toggleterm.terminal").Terminal
+  local commitaura = Terminal:new({
+    cmd = "commitaura",
+    direction = "float",
+    close_on_exit = false,
+    float_opts = {
+      border = "curved",
+      width = function()
+        return math.floor(vim.o.columns * 0.8)
+      end,
+      height = function()
+        return math.floor(vim.o.lines * 0.8)
+      end,
+      winblend = 0,
+    },
+  })
+  commitaura:toggle()
+end, { desc = "Commit with Commitaura" })
+
 -- Keybinding to open GitHub PAT creation page
 vim.keymap.set("n", "<leader>gP", function()
   utils.open_url("https://github.com/settings/tokens/new")
@@ -64,3 +85,24 @@ end
 
 -- Keybinding to prompt and add to .gitignore
 vim.keymap.set("n", "<leader>gI", prompt_and_add_to_gitignore, { desc = "Add to .gitignore" })
+
+-- Function to run 'git add .'
+local function git_add_all()
+  -- Check if we're inside a Git repository
+  local is_git_repo = vim.fn.systemlist("git rev-parse --is-inside-work-tree")[1]
+  if is_git_repo ~= "true" then
+    vim.notify("Not inside a Git repository", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Run 'git add .'
+  local result = vim.fn.systemlist("git add . 2>&1")
+  if vim.v.shell_error == 0 then
+    vim.notify("All changes have been staged", vim.log.levels.INFO)
+  else
+    vim.notify("Error staging changes: " .. table.concat(result, "\n"), vim.log.levels.ERROR)
+  end
+end
+
+-- Keybinding to run 'git add .'
+vim.keymap.set("n", "<leader>ga", git_add_all, { desc = "Git Add All" })
