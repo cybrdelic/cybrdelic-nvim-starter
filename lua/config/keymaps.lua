@@ -2,13 +2,87 @@
 
 -- Require the utils module
 local utils = require("utils")
+-- Require necessary modules
+local telescope_builtin = require("telescope.builtin")
+local actions = require("telescope.actions")
+local action_state = require("telescope.actions.state")
+
+-- Function to manage notes in ~/notes directory
+local function manage_notes()
+  local notes_dir = vim.fn.expand("~/notes")
+
+  -- Check if the notes directory exists
+  if vim.fn.isdirectory(notes_dir) == 0 then
+    vim.notify("Notes directory does not exist: " .. notes_dir, vim.log.levels.ERROR)
+    return
+  end
+
+  -- Use Telescope to browse and manage notes
+  telescope_builtin.find_files({
+    prompt_title = "Notes",
+    cwd = notes_dir,
+    attach_mappings = function(prompt_bufnr, map)
+      -- Map actions in the Telescope prompt
+
+      -- Open the selected note
+      actions.select_default:replace(function()
+        actions.close(prompt_bufnr)
+        local selection = action_state.get_selected_entry()
+        local filename = selection.path
+        vim.cmd("edit " .. vim.fn.fnameescape(filename))
+      end)
+
+      -- Add a keybinding to create a new note
+      map("i", "<C-n>", function()
+        actions.close(prompt_bufnr)
+        vim.schedule(create_new_note)
+      end)
+
+      map("n", "<C-n>", function()
+        actions.close(prompt_bufnr)
+        vim.schedule(create_new_note)
+      end)
+
+      return true
+    end,
+  })
+end
+
+-- Function to create a new note
+function create_new_note()
+  local notes_dir = vim.fn.expand("~/notes")
+
+  -- Prompt for the note title
+  vim.ui.input({ prompt = "New note title: " }, function(input)
+    if input == nil or input == "" then
+      vim.notify("Note creation cancelled", vim.log.levels.INFO)
+      return
+    end
+
+    -- Replace spaces with underscores and remove special characters
+    local filename = input:gsub("%s+", "_"):gsub("[^%w_]", "") .. ".md"
+    local filepath = notes_dir .. "/" .. filename
+
+    -- Check if the file already exists
+    if vim.fn.filereadable(filepath) == 1 then
+      vim.notify("A note with that name already exists", vim.log.levels.ERROR)
+      return
+    end
+
+    -- Create the new note file
+    vim.fn.writefile({}, filepath)
+    vim.cmd("edit " .. vim.fn.fnameescape(filepath))
+
+    -- Insert the title into the file
+    vim.api.nvim_put({ "# " .. input, "" }, "l", true, true)
+  end)
+end
+
+-- Keybinding to manage notes
+vim.keymap.set("n", "<leader>tN", manage_notes, { desc = "Manage Notes" })
 
 -- Keybinding to rename a file using Telescope
 vim.keymap.set("n", "<leader>fx", function()
-  local telescope_builtin = require("telescope.builtin")
-  local actions = require("telescope.actions")
-  local action_state = require("telescope.actions.state")
-
   telescope_builtin.find_files({
     prompt_title = "Rename File",
     attach_mappings = function(prompt_bufnr, map)
