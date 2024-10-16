@@ -160,3 +160,42 @@ end
 
 -- Keybinding to run 'git add .'
 vim.keymap.set("n", "<leader>ga", git_add_all, { desc = "Git Add All" })
+-- Function to run './copy.sh' script
+local function run_copy_sh()
+  -- Get the current working directory
+  local cwd = vim.fn.getcwd()
+
+  -- Construct the full path to the script
+  local script_path = cwd .. "/copy.sh"
+
+  -- Check if the script exists
+  if vim.fn.filereadable(script_path) == 0 then
+    vim.notify("Script not found: " .. script_path, vim.log.levels.ERROR)
+    return
+  end
+
+  -- Run the script asynchronously
+  vim.fn.jobstart({ "bash", script_path }, {
+    stdout_buffered = true,
+    on_stdout = function(_, data)
+      if data then
+        vim.notify(table.concat(data, "\n"), vim.log.levels.INFO)
+      end
+    end,
+    on_stderr = function(_, data)
+      if data then
+        vim.notify(table.concat(data, "\n"), vim.log.levels.ERROR)
+      end
+    end,
+    on_exit = function(_, code)
+      if code == 0 then
+        vim.notify("Script executed successfully", vim.log.levels.INFO)
+      else
+        vim.notify("Script exited with code " .. code, vim.log.levels.ERROR)
+      end
+    end,
+  })
+end
+
+-- Keybinding to run './copy.sh'
+vim.keymap.set("n", "<leader>cs", run_copy_sh, { desc = "Run copy.sh" })
