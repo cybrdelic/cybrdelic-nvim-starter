@@ -1,26 +1,28 @@
--- File: ./lua/plugins/dap.lua
+-- File: ./lua/plugins/dap.lua-- File: ./lua/plugins/dap.lua
 
 return {
   {
     "mfussenegger/nvim-dap",
     lazy = false,
     dependencies = {
+      -- Adding nvim-nio as a required dependency
+      "nvim-neotest/nvim-nio",
       "rcarriga/nvim-dap-ui", -- UI for DAP
       "theHamsta/nvim-dap-virtual-text", -- Show variables in-line during debugging
       "nvim-telescope/telescope-dap.nvim", -- Telescope integration
+      "mfussenegger/nvim-dap-python", -- Python support
     },
     config = function()
       local dap = require("dap")
       local dap_ui = require("dapui")
       local dap_virtual_text = require("nvim-dap-virtual-text")
-      local telescope = require("telescope")
-      telescope.load_extension("dap")
+      local nio = require("nio") -- This initializes the nvim-nio dependency
 
-      -- Load the DAP UI and virtual text
+      -- Load DAP UI and virtual text
       dap_ui.setup()
       dap_virtual_text.setup()
 
-      -- Function to load configurations from launch.json
+      -- Function to load launch.json
       local function load_launch_json()
         local launch_json_path = vim.fn.getcwd() .. "/.vscode/launch.json"
         if vim.fn.filereadable(launch_json_path) == 1 then
@@ -36,15 +38,13 @@ return {
         callback = load_launch_json,
       })
 
-      -- Keybinding to allow interactive selection of debugger configurations
+      -- Keybinding to select debugger configuration with Telescope
       vim.keymap.set("n", "<leader>ds", function()
-        -- Check if DAP configurations are loaded
         if #dap.configurations == 0 then
           vim.notify("No DAP configurations loaded. Make sure launch.json is loaded.", vim.log.levels.ERROR)
           return
         end
 
-        -- Use Telescope to pick the configuration
         require("telescope.pickers")
           .new({}, {
             prompt_title = "Select Debugger Configuration",
@@ -65,7 +65,7 @@ return {
               actions.select_default:replace(function()
                 actions.close(prompt_bufnr)
                 local selection = action_state.get_selected_entry()
-                dap.run(selection.value) -- Start the debugger with the selected configuration
+                dap.run(selection.value)
               end)
               return true
             end,
