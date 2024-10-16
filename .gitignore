@@ -8,3 +8,5 @@ foo.*
 data
 .lua/
 lazy-lock.json
+neo-tree filesystem [1]
+index_cache.json
