@@ -3,6 +3,60 @@
 -- Require the utils module
 local utils = require("utils")
 
+-- Keybinding to rename a file using Telescope
+vim.keymap.set("n", "<leader>fx", function()
+  local telescope_builtin = require("telescope.builtin")
+  local actions = require("telescope.actions")
+  local action_state = require("telescope.actions.state")
+
+  telescope_builtin.find_files({
+    prompt_title = "Rename File",
+    attach_mappings = function(prompt_bufnr, map)
+      actions.select_default:replace(function()
+        actions.close(prompt_bufnr)
+        local selection = action_state.get_selected_entry()
+        local old_file = selection.path
+
+        -- Prompt for the new filename
+        vim.ui.input({ prompt = "New filename: ", default = vim.fn.fnamemodify(old_file, ":t") }, function(input)
+          if not input or input == "" then
+            vim.notify("Rename cancelled", vim.log.levels.INFO)
+            return
+          end
+
+          local new_file = vim.fn.fnamemodify(old_file, ":h") .. "/" .. input
+
+          -- Check if the new file already exists
+          if vim.loop.fs_stat(new_file) then
+            vim.notify("File already exists: " .. new_file, vim.log.levels.ERROR)
+            return
+          end
+
+          -- Perform the rename
+          local ok, err = os.rename(old_file, new_file)
+          if not ok then
+            vim.notify("Error renaming file: " .. err, vim.log.levels.ERROR)
+            return
+          end
+
+          -- Update any open buffers
+          for _, buf in ipairs(vim.fn.getbufinfo({ bufloaded = 1 })) do
+            if buf.name == old_file then
+              vim.api.nvim_buf_set_name(buf.bufnr, new_file)
+              vim.api.nvim_buf_call(buf.bufnr, function()
+                vim.cmd("edit")
+              end)
+            end
+          end
+
+          vim.notify("Renamed " .. old_file .. " to " .. new_file, vim.log.levels.INFO)
+        end)
+      end)
+      return true
+    end,
+  })
+end, { desc = "Rename File" })
+
 -- Existing keymaps...
 vim.keymap.set(
   "n",
