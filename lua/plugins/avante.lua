@@ -9,16 +9,16 @@ return {
     opts = {
       provider = "claude", -- Use Claude as the provider
       claude = {
-        model = "claude-2", -- Specify the model if needed
+        model = "claude-3-5-sonnet-20240620", -- Specify the model if needed
         temperature = 0,
-        max_tokens = 4096,
+        max_tokens = 8192,
       },
       behaviour = {
-        auto_suggestions = false,
+        auto_suggestions = true,
         -- Additional behavior configurations...
       },
       mappings = {
-        -- Customize your keybindings here
+        -- Existing custom keybindings...
         diff = {
           ours = "co",
           theirs = "ct",
@@ -50,6 +50,16 @@ return {
         },
       },
       -- Other configurations...
+    },
+    keys = {
+      -- Add the keybinding to toggle the Avante sidebar
+      {
+        "<leader>aa",
+        function()
+          require("avante").toggle()
+        end,
+        desc = "Toggle Avante Sidebar",
+      },
     },
     dependencies = {
       "nvim-treesitter/nvim-treesitter",
