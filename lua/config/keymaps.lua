@@ -216,8 +216,29 @@ local function run_commitaura()
   commitaura:toggle()
 end
 
--- Overpowered Keybindings
--- These keybindings aim to enhance productivity and provide quick access to common actions.
+-- Function to rename the current file
+local function rename_file()
+  local old_name = vim.fn.expand("%")
+  vim.ui.input({ prompt = "New filename: ", default = vim.fn.fnamemodify(old_name, ":t") }, function(input)
+    if input and input ~= "" and input ~= old_name then
+      local new_name = vim.fn.fnamemodify(old_name, ":h") .. "/" .. input
+      local ok, err = os.rename(old_name, new_name)
+      if not ok then
+        vim.notify("Error renaming file: " .. err, vim.log.levels.ERROR)
+      else
+        vim.cmd("edit " .. new_name)
+        vim.notify("File renamed to " .. new_name, vim.log.levels.INFO)
+      end
+    else
+      vim.notify("Rename cancelled", vim.log.levels.INFO)
+    end
+  end)
+end
+
+-- Function to toggle aerial
+local function toggle_aerial()
+  require("aerial").toggle()
+end
 
 -- General Keybindings
 vim.keymap.set("n", "<leader>uK", copy_all_keymaps, { desc = "Copy All Keymaps" })
@@ -286,27 +307,17 @@ end, { desc = "Create GitHub PAT" })
 vim.keymap.set("n", "<leader>tt", "<cmd>ToggleTerm<cr>", { desc = "Toggle Terminal" })
 
 -- Rename File Function
-local function rename_file()
-  local old_name = vim.fn.expand("%")
-  vim.ui.input({ prompt = "New filename: ", default = vim.fn.fnamemodify(old_name, ":t") }, function(input)
-    if input and input ~= "" and input ~= old_name then
-      local new_name = vim.fn.fnamemodify(old_name, ":h") .. "/" .. input
-      local ok, err = os.rename(old_name, new_name)
-      if not ok then
-        vim.notify("Error renaming file: " .. err, vim.log.levels.ERROR)
-      else
-        vim.cmd("edit " .. new_name)
-        vim.notify("File renamed to " .. new_name, vim.log.levels.INFO)
-      end
-    else
-      vim.notify("Rename cancelled", vim.log.levels.INFO)
-    end
-  end)
-end
-
 vim.keymap.set("n", "<leader>fr", rename_file, { desc = "Rename Current File" })
 
--- Overpowered Which-Key Registrations
+-- Aerial Keybindings
+vim.keymap.set("n", "<leader>aa", toggle_aerial, { desc = "Toggle Aerial Sidebar" })
+vim.keymap.set("n", "<leader>af", function()
+  require("aerial").open({ layout = { default_direction = "float" } })
+end, { desc = "Open Aerial (Float)" })
+vim.keymap.set("n", "}", "<cmd>AerialNext<CR>", { desc = "Jump to Next Symbol" })
+vim.keymap.set("n", "{", "<cmd>AerialPrev<CR>", { desc = "Jump to Previous Symbol" })
+
+-- Register keybindings with Which-Key for better discoverability
 wk.register({
   u = {
     name = "Utilities",
@@ -349,5 +360,11 @@ wk.register({
   w = { "<cmd>w<cr>", "Save Buffer" },
   q = { "<cmd>q<cr>", "Quit" },
   Q = { "<cmd>qa!<cr>", "Quit All" },
-  ["tt"] = { "<cmd>ToggleTerm<cr>", "Toggle Terminal" },
+  a = {
+    name = "Aerial",
+    a = { toggle_aerial, "Toggle Aerial Sidebar" }, -- <leader>aa
+    f = { "<cmd>AerialToggle!<CR>", "Toggle Aerial Sidebar" }, -- <leader>af
+    n = { "<cmd>AerialNext<CR>", "Jump to Next Symbol" }, -- <leader>an
+    p = { "<cmd>AerialPrev<CR>", "Jump to Previous Symbol" }, -- <leader>ap
+  },
 }, { prefix = "<leader>" })
