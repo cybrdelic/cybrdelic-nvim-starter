@@ -1,55 +1,32 @@
 -- ./lua/config/keymaps.lua
 
--- Require the utils module
-local utils = require("utils")
 -- Require necessary modules
+local utils = require("utils")
 local telescope_builtin = require("telescope.builtin")
 local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
+local wk = require("which-key")
 
--- Function to manage notes in ~/notes directory
-local function manage_notes()
-  local notes_dir = vim.fn.expand("~/notes")
-
-  -- Check if the notes directory exists
-  if vim.fn.isdirectory(notes_dir) == 0 then
-    vim.notify("Notes directory does not exist: " .. notes_dir, vim.log.levels.ERROR)
-    return
+-- Function to copy all keymaps to the clipboard
+local function copy_all_keymaps()
+  local modes = { "n", "i", "v", "x", "s", "o", "c", "t" }
+  local keymaps = {}
+  for _, mode in ipairs(modes) do
+    local maps = vim.api.nvim_get_keymap(mode)
+    for _, map in ipairs(maps) do
+      -- Format the keymap information
+      local line =
+        string.format("Mode: %s | LHS: %s | RHS: %s | Desc: %s", mode, map.lhs, map.rhs or "", map.desc or "")
+      table.insert(keymaps, line)
+    end
   end
-
-  -- Use Telescope to browse and manage notes
-  telescope_builtin.find_files({
-    prompt_title = "Notes",
-    cwd = notes_dir,
-    attach_mappings = function(prompt_bufnr, map)
-      -- Map actions in the Telescope prompt
-
-      -- Open the selected note
-      actions.select_default:replace(function()
-        actions.close(prompt_bufnr)
-        local selection = action_state.get_selected_entry()
-        local filename = selection.path
-        vim.cmd("edit " .. vim.fn.fnameescape(filename))
-      end)
-
-      -- Add a keybinding to create a new note
-      map("i", "<C-n>", function()
-        actions.close(prompt_bufnr)
-        vim.schedule(create_new_note)
-      end)
-
-      map("n", "<C-n>", function()
-        actions.close(prompt_bufnr)
-        vim.schedule(create_new_note)
-      end)
-
-      return true
-    end,
-  })
+  local output = table.concat(keymaps, "\n")
+  vim.fn.setreg("+", output) -- Copy to the system clipboard
+  vim.notify("All keymaps copied to clipboard", vim.log.levels.INFO)
 end
 
 -- Function to create a new note
-function create_new_note()
+local function create_new_note()
   local notes_dir = vim.fn.expand("~/notes")
 
   -- Prompt for the note title
@@ -78,92 +55,44 @@ function create_new_note()
   end)
 end
 
--- Keybinding to manage notes
-vim.keymap.set("n", "<leader>tN", manage_notes, { desc = "Manage Notes" })
+-- Function to manage notes in ~/notes directory
+local function manage_notes()
+  local notes_dir = vim.fn.expand("~/notes")
 
--- Keybinding to rename a file using Telescope
-vim.keymap.set("n", "<leader>fx", function()
+  -- Check if the notes directory exists
+  if vim.fn.isdirectory(notes_dir) == 0 then
+    vim.notify("Notes directory does not exist: " .. notes_dir, vim.log.levels.ERROR)
+    return
+  end
+
+  -- Use Telescope to browse and manage notes
   telescope_builtin.find_files({
-    prompt_title = "Rename File",
+    prompt_title = "Notes",
+    cwd = notes_dir,
     attach_mappings = function(prompt_bufnr, map)
+      -- Open the selected note
       actions.select_default:replace(function()
         actions.close(prompt_bufnr)
         local selection = action_state.get_selected_entry()
-        local old_file = selection.path
-
-        -- Prompt for the new filename
-        vim.ui.input({ prompt = "New filename: ", default = vim.fn.fnamemodify(old_file, ":t") }, function(input)
-          if not input or input == "" then
-            vim.notify("Rename cancelled", vim.log.levels.INFO)
-            return
-          end
-
-          local new_file = vim.fn.fnamemodify(old_file, ":h") .. "/" .. input
-
-          -- Check if the new file already exists
-          if vim.loop.fs_stat(new_file) then
-            vim.notify("File already exists: " .. new_file, vim.log.levels.ERROR)
-            return
-          end
-
-          -- Perform the rename
-          local ok, err = os.rename(old_file, new_file)
-          if not ok then
-            vim.notify("Error renaming file: " .. err, vim.log.levels.ERROR)
-            return
-          end
-
-          -- Update any open buffers
-          for _, buf in ipairs(vim.fn.getbufinfo({ bufloaded = 1 })) do
-            if buf.name == old_file then
-              vim.api.nvim_buf_set_name(buf.bufnr, new_file)
-              vim.api.nvim_buf_call(buf.bufnr, function()
-                vim.cmd("edit")
-              end)
-            end
-          end
-
-          vim.notify("Renamed " .. old_file .. " to " .. new_file, vim.log.levels.INFO)
-        end)
+        local filename = selection.path
+        vim.cmd("edit " .. vim.fn.fnameescape(filename))
       end)
+
+      -- Add a keybinding to create a new note
+      map("i", "<C-n>", function()
+        actions.close(prompt_bufnr)
+        vim.schedule(create_new_note)
+      end)
+
+      map("n", "<C-n>", function()
+        actions.close(prompt_bufnr)
+        vim.schedule(create_new_note)
+      end)
+
       return true
     end,
   })
-end, { desc = "Rename File" })
-
--- Existing keymaps...
-vim.keymap.set(
-  "n",
-  "<leader>sx",
-  require("telescope.builtin").resume,
-  { noremap = true, silent = true, desc = "Resume" }
-)
-
--- Function to run commitaura in a floating terminal
-vim.keymap.set("n", "<leader>gA", function()
-  local Terminal = require("toggleterm.terminal").Terminal
-  local commitaura = Terminal:new({
-    cmd = "commitaura",
-    direction = "float",
-    close_on_exit = false,
-    float_opts = {
-      border = "curved",
-      width = function()
-        return math.floor(vim.o.columns * 0.8)
-      end,
-      height = function()
-        return math.floor(vim.o.lines * 0.8)
-      end,
-      winblend = 0,
-    },
-  })
-  commitaura:toggle()
-end, { desc = "Commit with Commitaura" })
-
--- Keybinding to open GitHub PAT creation page
-vim.keymap.set("n", "<leader>gP", function()
-  utils.open_url("https://github.com/settings/tokens/new")
-end, { noremap = true, silent = true, desc = "Create GitHub PAT" })
+end
 
 -- Function to prompt the user and add the input to .gitignore
 local function prompt_and_add_to_gitignore()
@@ -211,9 +140,6 @@ local function prompt_and_add_to_gitignore()
   end)
 end
 
--- Keybinding to prompt and add to .gitignore
-vim.keymap.set("n", "<leader>gI", prompt_and_add_to_gitignore, { desc = "Add to .gitignore" })
-
 -- Function to run 'git add .'
 local function git_add_all()
   -- Check if we're inside a Git repository
@@ -232,8 +158,6 @@ local function git_add_all()
   end
 end
 
--- Keybinding to run 'git add .'
-vim.keymap.set("n", "<leader>ga", git_add_all, { desc = "Git Add All" })
 -- Function to run './copy.sh' script
 local function run_copy_sh()
   -- Get the current working directory
@@ -252,12 +176,12 @@ local function run_copy_sh()
   vim.fn.jobstart({ "bash", script_path }, {
     stdout_buffered = true,
     on_stdout = function(_, data)
-      if data then
+      if data and #data > 0 then
         vim.notify(table.concat(data, "\n"), vim.log.levels.INFO)
       end
     end,
     on_stderr = function(_, data)
-      if data then
+      if data and #data > 0 then
         vim.notify(table.concat(data, "\n"), vim.log.levels.ERROR)
       end
     end,
@@ -271,5 +195,159 @@ local function run_copy_sh()
   })
 end
 
--- Keybinding to run './copy.sh'
+-- Function to run commitaura in a floating terminal
+local function run_commitaura()
+  local Terminal = require("toggleterm.terminal").Terminal
+  local commitaura = Terminal:new({
+    cmd = "commitaura",
+    direction = "float",
+    close_on_exit = false,
+    float_opts = {
+      border = "curved",
+      width = function()
+        return math.floor(vim.o.columns * 0.8)
+      end,
+      height = function()
+        return math.floor(vim.o.lines * 0.8)
+      end,
+      winblend = 0,
+    },
+  })
+  commitaura:toggle()
+end
+
+-- Overpowered Keybindings
+-- These keybindings aim to enhance productivity and provide quick access to common actions.
+
+-- General Keybindings
+vim.keymap.set("n", "<leader>uK", copy_all_keymaps, { desc = "Copy All Keymaps" })
+vim.keymap.set("n", "<leader>tN", manage_notes, { desc = "Manage Notes" })
+vim.keymap.set("n", "<leader>sx", telescope_builtin.resume, { desc = "Resume Telescope" })
+vim.keymap.set("n", "<leader>gI", prompt_and_add_to_gitignore, { desc = "Add to .gitignore" })
+vim.keymap.set("n", "<leader>ga", git_add_all, { desc = "Git Add All" })
 vim.keymap.set("n", "<leader>cs", run_copy_sh, { desc = "Run copy.sh" })
+vim.keymap.set("n", "<leader>gA", run_commitaura, { desc = "Commit with Commitaura" })
+
+-- Advanced Navigation
+vim.keymap.set("n", "<C-h>", "<C-w>h", { desc = "Move to left split" })
+vim.keymap.set("n", "<C-j>", "<C-w>j", { desc = "Move to below split" })
+vim.keymap.set("n", "<C-k>", "<C-w>k", { desc = "Move to above split" })
+vim.keymap.set("n", "<C-l>", "<C-w>l", { desc = "Move to right split" })
+
+-- Buffer Navigation
+vim.keymap.set("n", "<Tab>", "<cmd>BufferLineCycleNext<cr>", { desc = "Next Buffer" })
+vim.keymap.set("n", "<S-Tab>", "<cmd>BufferLineCyclePrev<cr>", { desc = "Previous Buffer" })
+
+-- Quick Save and Quit
+vim.keymap.set("n", "<leader>w", "<cmd>w<cr>", { desc = "Save Buffer" })
+vim.keymap.set("n", "<leader>q", "<cmd>q<cr>", { desc = "Quit" })
+vim.keymap.set("n", "<leader>Q", "<cmd>qa!<cr>", { desc = "Quit All" })
+
+-- Resize Splits
+vim.keymap.set("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase Height" })
+vim.keymap.set("n", "<C-Down>", "<cmd>resize -2<cr>", { desc = "Decrease Height" })
+vim.keymap.set("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Width" })
+vim.keymap.set("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Width" })
+
+-- Move Lines
+vim.keymap.set("n", "<A-j>", "<cmd>m .+1<cr>==", { desc = "Move Line Down" })
+vim.keymap.set("n", "<A-k>", "<cmd>m .-2<cr>==", { desc = "Move Line Up" })
+vim.keymap.set("i", "<A-j>", "<Esc><cmd>m .+1<cr>==gi", { desc = "Move Line Down" })
+vim.keymap.set("i", "<A-k>", "<Esc><cmd>m .-2<cr>==gi", { desc = "Move Line Up" })
+vim.keymap.set("v", "<A-j>", ":m '>+1<cr>gv=gv", { desc = "Move Selection Down" })
+vim.keymap.set("v", "<A-k>", ":m '<-2<cr>gv=gv", { desc = "Move Selection Up" })
+
+-- Quickfix and Location Lists
+vim.keymap.set("n", "<leader>xl", "<cmd>lopen<cr>", { desc = "Open Location List" })
+vim.keymap.set("n", "<leader>xq", "<cmd>copen<cr>", { desc = "Open Quickfix List" })
+
+-- Toggle Settings
+vim.keymap.set("n", "<leader>tn", "<cmd>set number!<cr>", { desc = "Toggle Line Numbers" })
+vim.keymap.set("n", "<leader>tr", "<cmd>set relativenumber!<cr>", { desc = "Toggle Relative Numbers" })
+vim.keymap.set("n", "<leader>tw", "<cmd>set wrap!<cr>", { desc = "Toggle Word Wrap" })
+vim.keymap.set("n", "<leader>ts", "<cmd>set spell!<cr>", { desc = "Toggle Spelling" })
+
+-- Search and Replace
+vim.keymap.set("n", "<leader>sr", ":%s//g<Left><Left>", { desc = "Search and Replace" })
+
+-- Clear Search Highlighting
+vim.keymap.set("n", "<leader>h", "<cmd>nohlsearch<cr>", { desc = "Clear Search Highlighting" })
+
+-- Git Integration
+vim.keymap.set("n", "<leader>gs", "<cmd>Git<cr>", { desc = "Git Status" })
+vim.keymap.set("n", "<leader>gc", "<cmd>Git commit<cr>", { desc = "Git Commit" })
+vim.keymap.set("n", "<leader>gp", "<cmd>Git push<cr>", { desc = "Git Push" })
+vim.keymap.set("n", "<leader>gl", "<cmd>Git pull<cr>", { desc = "Git Pull" })
+vim.keymap.set("n", "<leader>gP", function()
+  utils.open_url("https://github.com/settings/tokens/new")
+end, { desc = "Create GitHub PAT" })
+
+-- Terminal Toggle
+vim.keymap.set("n", "<leader>tt", "<cmd>ToggleTerm<cr>", { desc = "Toggle Terminal" })
+
+-- Rename File Function
+local function rename_file()
+  local old_name = vim.fn.expand("%")
+  vim.ui.input({ prompt = "New filename: ", default = vim.fn.fnamemodify(old_name, ":t") }, function(input)
+    if input and input ~= "" and input ~= old_name then
+      local new_name = vim.fn.fnamemodify(old_name, ":h") .. "/" .. input
+      local ok, err = os.rename(old_name, new_name)
+      if not ok then
+        vim.notify("Error renaming file: " .. err, vim.log.levels.ERROR)
+      else
+        vim.cmd("edit " .. new_name)
+        vim.notify("File renamed to " .. new_name, vim.log.levels.INFO)
+      end
+    else
+      vim.notify("Rename cancelled", vim.log.levels.INFO)
+    end
+  end)
+end
+
+vim.keymap.set("n", "<leader>fr", rename_file, { desc = "Rename Current File" })
+
+-- Overpowered Which-Key Registrations
+wk.register({
+  u = {
+    name = "Utilities",
+    K = { copy_all_keymaps, "Copy All Keymaps" },
+  },
+  t = {
+    name = "Tools",
+    N = { manage_notes, "Manage Notes" },
+  },
+  f = {
+    name = "Files",
+    r = { rename_file, "Rename Current File" },
+  },
+  g = {
+    name = "Git",
+    s = { "<cmd>Git<cr>", "Git Status" },
+    c = { "<cmd>Git commit<cr>", "Git Commit" },
+    p = { "<cmd>Git push<cr>", "Git Push" },
+    l = { "<cmd>Git pull<cr>", "Git Pull" },
+    I = { prompt_and_add_to_gitignore, "Add to .gitignore" },
+    a = { git_add_all, "Git Add All" },
+    A = { run_commitaura, "Commit with Commitaura" },
+    P = {
+      function()
+        utils.open_url("https://github.com/settings/tokens/new")
+      end,
+      "Create GitHub PAT",
+    },
+  },
+  c = {
+    name = "Custom",
+    s = { run_copy_sh, "Run copy.sh" },
+  },
+  s = {
+    name = "Search",
+    r = { ":%s//g<Left><Left>", "Search and Replace" },
+    x = { telescope_builtin.resume, "Resume Telescope" },
+  },
+  h = { "<cmd>nohlsearch<cr>", "Clear Search Highlighting" },
+  w = { "<cmd>w<cr>", "Save Buffer" },
+  q = { "<cmd>q<cr>", "Quit" },
+  Q = { "<cmd>qa!<cr>", "Quit All" },
+  ["tt"] = { "<cmd>ToggleTerm<cr>", "Toggle Terminal" },
+}, { prefix = "<leader>" })
