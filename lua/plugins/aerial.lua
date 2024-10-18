@@ -1,4 +1,4 @@
--- ./lua/plugins/aerial.lua
+-- File: ~/.config/nvim/lua/plugins/aerial.lua
 
 return {
   {

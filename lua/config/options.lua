@@ -1,8 +1,34 @@
--- Options are automatically loaded before lazy.nvim startup
--- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
--- Add any additional options here
+-- File: ~/.config/nvim/lua/config/options.lua
 
-vim.opt.winbar = "%=%m %f"
+-- General Neovim Options
+local opt = vim.opt
 
--- Allow placing the cursor after the last character in the file
-vim.o.virtualedit = "onemore"
+-- Set leader key to space
+vim.g.mapleader = " "
+
+-- Appearance
+opt.number = true
+opt.relativenumber = true
+opt.cursorline = true
+opt.termguicolors = true
+opt.signcolumn = "yes"
+opt.wrap = false
+
+-- Indentation
+opt.tabstop = 2
+opt.shiftwidth = 2
+opt.expandtab = true
+opt.smartindent = true
+
+-- Search
+opt.hlsearch = false
+opt.incsearch = true
+opt.ignorecase = true
+opt.smartcase = true
+
+-- Other Options
+opt.splitbelow = true
+opt.splitright = true
+opt.updatetime = 300
+opt.scrolloff = 8
+opt.sidescrolloff = 8

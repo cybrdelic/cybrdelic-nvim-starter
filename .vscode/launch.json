@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Neovim",
+      "type": "vim",  // Must match the adapter type in dap.lua
+      "request": "attach",
+      "program": "${file}",  // Can be adjusted based on your needs
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false,
+      "args": []
+    },
+    {
+      "name": "Launch Python Script",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {},
+      "args": []
+    },
+    {
+      "name": "Attach to Running Python Process",
+      "type": "python",
+      "request": "attach",
+      "processId": "${command:pickProcess}",
+      "cwd": "${workspaceFolder}",
+      "env": {}
+    }
+  ]
+}
+

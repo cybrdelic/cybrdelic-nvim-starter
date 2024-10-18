@@ -1,4 +1,4 @@
--- ./lua/plugins/surround.lua
+-- File: ~/.config/nvim/lua/plugins/surround.lua
 
 return {
   {

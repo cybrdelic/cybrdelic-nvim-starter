@@ -1,4 +1,4 @@
--- ./lua/plugins/hop.lua
+-- File: ~/.config/nvim/lua/plugins/hop.lua
 
 return {
   {

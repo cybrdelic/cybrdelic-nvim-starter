@@ -1,4 +1,5 @@
--- ./lua/plugins/avante.lua
+-- File: ~/.config/nvim/lua/plugins/avante.lua
+
 return {
   {
     "yetone/avante.nvim",

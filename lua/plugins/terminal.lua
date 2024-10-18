@@ -1,3 +1,5 @@
+-- File: ~/.config/nvim/lua/plugins/terminal.lua
+
 return {
   {
     "akinsho/toggleterm.nvim",
