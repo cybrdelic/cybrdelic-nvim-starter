@@ -2,57 +2,69 @@
 
 local wk = require("which-key")
 
--- Function to clear all keymaps except those starting with <leader>
-local function clear_unwanted_keymaps()
-  local modes = { "n", "i", "v", "x", "s", "o", "c", "t" }
-  for _, mode in ipairs(modes) do
-    local maps = vim.api.nvim_get_keymap(mode)
-    for _, map in ipairs(maps) do
-      if map.lhs and not map.lhs:match("^<leader>") then
-        vim.api.nvim_del_keymap(mode, map.lhs)
-      end
-    end
-  end
-  vim.notify("Unwanted keymaps cleared.", vim.log.levels.INFO)
-end
-
--- Clear keymaps after all plugins have loaded using the VeryLazy event
-vim.api.nvim_create_autocmd("VeryLazy", {
-  callback = clear_unwanted_keymaps,
+wk.register({
+  ["<leader>"] = {
+    f = {
+      name = "File",
+      f = { "<cmd>Telescope find_files<cr>", "Find File" },
+      r = { "<cmd>Telescope oldfiles<cr>", "Open Recent File" },
+      n = { "<cmd>enew<cr>", "New File" },
+    },
+    e = { "<cmd>NvimTreeToggle<cr>", "Toggle Explorer" },
+    w = { "<cmd>w<cr>", "Save" },
+    q = { "<cmd>q<cr>", "Quit" },
+    b = {
+      name = "Buffer",
+      b = { "<cmd>Telescope buffers<cr>", "Switch Buffer" },
+      d = { "<cmd>bdelete<cr>", "Delete Buffer" },
+    },
+    g = {
+      name = "Git",
+      g = { "<cmd>Git<cr>", "Git Status" },
+      b = { "<cmd>Telescope git_branches<cr>", "Checkout Branch" },
+      c = { "<cmd>Telescope git_commits<cr>", "Checkout Commit" },
+      d = { "<cmd>Gitsigns diffthis HEAD<cr>", "Diff" },
+      p = { "<cmd>Git push<cr>", "Push" },
+      P = { "<cmd>Git pull<cr>", "Pull" },
+    },
+    l = {
+      name = "LSP",
+      i = { "<cmd>LspInfo<cr>", "Info" },
+      r = { vim.lsp.buf.rename, "Rename" },
+      s = { "<cmd>Telescope lsp_document_symbols<cr>", "Document Symbols" },
+      S = { "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", "Workspace Symbols" },
+    },
+    s = {
+      name = "Search",
+      b = { "<cmd>Telescope git_branches<cr>", "Checkout branch" },
+      c = { "<cmd>Telescope colorscheme<cr>", "Colorscheme" },
+      h = { "<cmd>Telescope help_tags<cr>", "Find Help" },
+      M = { "<cmd>Telescope man_pages<cr>", "Man Pages" },
+      r = { "<cmd>Telescope oldfiles<cr>", "Open Recent File" },
+      R = { "<cmd>Telescope registers<cr>", "Registers" },
+      k = { "<cmd>Telescope keymaps<cr>", "Keymaps" },
+      C = { "<cmd>Telescope commands<cr>", "Commands" },
+    },
+    t = { "<cmd>ToggleTerm<cr>", "Toggle Terminal" },
+  },
 })
 
--- Optionally, manually delete specific keymaps
-vim.api.nvim_del_keymap("n", "<Space>gD")
-vim.api.nvim_del_keymap("n", "<Space>gh")
--- Add more deletions as needed
+-- Normal mode mappings
+vim.keymap.set("n", "<C-h>", "<C-w>h", { desc = "Go to left window", remap = true })
+vim.keymap.set("n", "<C-j>", "<C-w>j", { desc = "Go to lower window", remap = true })
+vim.keymap.set("n", "<C-k>", "<C-w>k", { desc = "Go to upper window", remap = true })
+vim.keymap.set("n", "<C-l>", "<C-w>l", { desc = "Go to right window", remap = true })
 
--- Define your own keymaps
-wk.register({
-  -- File Operations
-  f = {
-    name = "File",
-    s = { "<cmd>w<cr>", "Save File" },
-    q = { "<cmd>q<cr>", "Quit" },
-    a = { "<cmd>wa<cr>", "Save All" },
-  },
-  -- Git Operations
-  g = {
-    name = "Git",
-    s = { "<cmd>Git status<cr>", "Git Status" },
-    c = { "<cmd>Git commit<cr>", "Git Commit" },
-    p = { "<cmd>Git push<cr>", "Git Push" },
-    l = { "<cmd>Git pull<cr>", "Git Pull" },
-  },
-  -- Telescope
-  t = {
-    name = "Telescope",
-    f = { "<cmd>Telescope find_files<cr>", "Find Files" },
-    g = { "<cmd>Telescope live_grep<cr>", "Live Grep" },
-    b = { "<cmd>Telescope buffers<cr>", "Buffers" },
-    h = { "<cmd>Telescope help_tags<cr>", "Help Tags" },
-  },
-  -- Toggle Terminal
-  T = { "<cmd>ToggleTerm<cr>", "Toggle Terminal" },
-  -- Others
-  e = { "<cmd>NvimTreeToggle<cr>", "Toggle Explorer" },
-}, { prefix = "<leader>" })
+-- Resize window using <ctrl> arrow keys
+vim.keymap.set("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase window height" })
+vim.keymap.set("n", "<C-Down>", "<cmd>resize -2<cr>", { desc = "Decrease window height" })
+vim.keymap.set("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease window width" })
+vim.keymap.set("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase window width" })
+
+-- Move Lines
+vim.keymap.set("n", "<A-j>", "<cmd>m .+1<cr>==", { desc = "Move down" })
+vim.keymap.set("n", "<A-k>", "<cmd>m .-2<cr>==", { desc = "Move up" })
+vim.keymap.set("i", "<A-j>", "<esc><cmd>m .+1<cr>==gi", { desc = "Move down" })
+vim.keymap.set("i", "<A-k>", "<esc><cmd>m .-2<cr>==gi", { desc = "Move up" })
+vim.keymap.set("v", "<A-j>", ":m '>+1<cr>gv=gv", { desc = "Move down" })
+vim.keymap.set("v", "<A-k>", ":m '<-2<cr>gv=gv", { desc = "Move up" })

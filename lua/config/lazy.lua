@@ -1,16 +1,15 @@
--- File: ~/.config/nvim/lua/config/lazy.lua
+-- File: ~/.config/nvi-- File: ~/.config/nvim/lua/config/lazy.lua
 
 require("lazy").setup({
   spec = {
-    -- Import all plugin specifications
     { import = "plugins" },
   },
   defaults = {
-    lazy = false,
+    lazy = true,
     version = false,
   },
-  install = { colorscheme = { "gruvbox" } }, -- Set your preferred colorscheme
-  checker = { enabled = true }, -- Automatically check for plugin updates
+  install = { colorscheme = { "catppuccin", "tokyonight", "gruvbox" } },
+  checker = { enabled = true },
   performance = {
     rtp = {
       disabled_plugins = {
